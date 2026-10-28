@@ -1,0 +1,55 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+
+    stages {
+        stage('Verify Tools') {
+            steps {
+                sh 'kubectl version --client'
+                sh 'kubectl config current-context'
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                sh 'kubectl apply -f set13/deployment.yaml'
+            }
+        }
+
+        stage('Verify Initial Deployment') {
+            steps {
+                sh 'kubectl rollout status deployment/lab-set13 --timeout=180s'
+                sh 'kubectl get deployment lab-set13'
+                sh 'kubectl get pods -l app=lab-set13'
+            }
+        }
+
+        stage('Perform Rolling Update') {
+            steps {
+                sh 'kubectl set image deployment/lab-set13 nginx=nginx:1.27-alpine'
+                sh 'kubectl rollout status deployment/lab-set13 --timeout=180s'
+            }
+        }
+
+        stage('Verify Updated Deployment') {
+            steps {
+                sh 'kubectl get deployment lab-set13'
+                sh 'kubectl get pods -l app=lab-set13'
+                sh 'kubectl get deployment lab-set13 -o jsonpath="{.spec.template.spec.containers[0].image}" | grep -Fx "nginx:1.27-alpine"'
+                sh 'kubectl rollout history deployment/lab-set13'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SET 13 PASSED: Rolling update completed and rollout status verified.'
+        }
+        failure {
+            echo 'SET 13 FAILED: Check Console Output and Kubernetes deployment status.'
+        }
+    }
+}
