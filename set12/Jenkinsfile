@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Verify Docker') {
+            steps {
+                sh 'docker --version'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t kubernetes-jenkins-set12:1.0 .'
+            }
+        }
+
+        stage('Verify Image') {
+            steps {
+                sh 'docker image inspect kubernetes-jenkins-set12:1.0'
+                sh 'echo "Docker image verification passed."'
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                sh 'curl -fsS http://localhost:8085 | grep -q "Docker and Jenkins Integration Successful"'
+                sh 'echo "Application HTTP test passed."'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SET 12 PASSED: Jenkins built and verified the Docker image and application.'
+        }
+        failure {
+            echo 'SET 12 FAILED: Check the Console Output.'
+        }
+    }
+}
