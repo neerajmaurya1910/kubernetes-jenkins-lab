@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        IMAGE_NAME = "lab-set15-web:1.0"
+    }
+
+    stages {
+        stage('Verify Tools') {
+            steps {
+                sh 'git --version'
+                sh 'docker --version'
+                sh 'kubectl config current-context'
+                sh 'kubectl get nodes'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('set15') {
+                    sh 'docker build -t lab-set15-web:1.0 .'
+                }
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                dir('set15') {
+                    sh 'grep -q "Complete CI/CD Pipeline Successful" index.html'
+                    sh 'docker run --rm --entrypoint cat lab-set15-web:1.0 /usr/share/nginx/html/index.html | grep -q "Complete CI/CD Pipeline Successful"'
+                }
+            }
+        }
+
+        stage('Load Image into Minikube') {
+            steps {
+                sh 'minikube image load lab-set15-web:1.0'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f set15/deployment.yaml'
+                sh 'kubectl rollout status deployment/lab-set15 --timeout=180s'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'kubectl get deployment lab-set15'
+                sh 'kubectl get pods -l app=lab-set15'
+                sh 'kubectl get service lab-set15-service'
+                sh 'kubectl get deployment lab-set15 -o jsonpath="{.spec.template.spec.containers[0].image}" | grep -Fx "lab-set15-web:1.0"'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SET 15 PASSED: CI/CD pipeline built, tested, and deployed the application successfully.'
+        }
+        failure {
+            echo 'SET 15 FAILED: Check Console Output for the failing stage.'
+        }
+    }
+}
