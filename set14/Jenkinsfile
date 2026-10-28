@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+
+    stages {
+        stage('Verify Kubernetes Access') {
+            steps {
+                sh 'kubectl config current-context'
+                sh 'kubectl get nodes'
+            }
+        }
+
+        stage('Deploy Intentionally Faulty Application') {
+            steps {
+                sh 'kubectl apply -f set14/deployment.yaml'
+            }
+        }
+
+        stage('Detect Deployment Failure') {
+            steps {
+                script {
+                    sh 'sleep 15'
+                    def result = sh(
+                        script: 'kubectl get pods -l app=lab-set14 --no-headers',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Pod status details:\n${result}"
+
+                    if (result.contains('ImagePullBackOff') ||
+                        result.contains('ErrImagePull')) {
+                        echo 'Expected failure detected: the container image cannot be pulled.'
+                    } else {
+                        error('Expected image-pull failure was not detected. Inspect the Pods.')
+                    }
+                }
+            }
+        }
+
+        stage('Troubleshoot Failure') {
+            steps {
+                sh 'kubectl describe deployment lab-set14'
+                sh 'kubectl get pods -l app=lab-set14 -o wide'
+                sh 'kubectl get events --sort-by=.metadata.creationTimestamp'
+            }
+        }
+
+        stage('Recover Deployment') {
+            steps {
+                sh 'kubectl set image deployment/lab-set14 nginx=nginx:1.27-alpine'
+                sh 'kubectl rollout status deployment/lab-set14 --timeout=180s'
+            }
+        }
+
+        stage('Verify Recovery') {
+            steps {
+                sh 'kubectl get deployment lab-set14'
+                sh 'kubectl get pods -l app=lab-set14'
+                sh 'kubectl get deployment lab-set14 -o jsonpath="{.spec.template.spec.containers[0].image}" | grep -Fx "nginx:1.27-alpine"'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SET 14 PASSED: Deployment failure detected, diagnostics collected, and recovery verified.'
+        }
+        failure {
+            echo 'SET 14 FAILED: Inspect Console Output and Kubernetes events.'
+        }
+    }
+}
