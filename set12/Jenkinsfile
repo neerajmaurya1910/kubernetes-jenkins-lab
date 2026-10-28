@@ -16,7 +16,9 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t kubernetes-jenkins-set12:1.0 .'
+                dir('set12') {
+                    sh 'docker build -t kubernetes-jenkins-set12:1.0 .'
+                }
             }
         }
 
