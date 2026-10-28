@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        KUBECONFIG = "/Users/neerajmaurya/.kube/config"
+    }
+
+    stages {
+        stage('Check kubectl') {
+            steps {
+                sh 'kubectl version --client'
+            }
+        }
+
+        stage('Verify Kubernetes Context') {
+            steps {
+                sh 'kubectl config current-context'
+                sh 'kubectl cluster-info'
+            }
+        }
+
+        stage('Verify Cluster Nodes') {
+            steps {
+                sh 'kubectl get nodes -o wide'
+                sh 'kubectl get pods -A'
+            }
+        }
+
+        stage('Verify Connection') {
+            steps {
+                sh '''
+                    kubectl get nodes --no-headers | grep -q " Ready "
+                    echo "Jenkins successfully connected to Kubernetes."
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SET 1 PASSED: Jenkins can access Kubernetes.'
+        }
+        failure {
+            echo 'SET 1 FAILED: Check the console output for the error.'
+        }
+    }
+}

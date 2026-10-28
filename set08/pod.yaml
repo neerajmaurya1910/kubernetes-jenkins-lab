@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lab-set08
+  labels:
+    app: lab-set08
+spec:
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      envFrom:
+        - configMapRef:
+            name: lab-set08-config
