@@ -1,10 +1,16 @@
 pipeline {
     agent any
 
+    environment {
+        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+
     stages {
         stage('Verify Docker') {
             steps {
+                sh 'which docker'
                 sh 'docker --version'
+                sh 'docker info --format "Docker engine: {{.ServerVersion}}"'
             }
         }
 
