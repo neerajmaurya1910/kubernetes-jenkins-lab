@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-Kubernetes through Jenkins - 15 Lab Exercises
-=======
-# kubernetes-jenkins-lab
->>>>>>> origin/main
+# Kubernetes through Jenkins - 15 Lab Exercises
+
+This repository contains lab exercises for Kubernetes and Jenkins.
