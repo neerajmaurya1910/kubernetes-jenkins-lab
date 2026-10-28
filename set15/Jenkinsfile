@@ -2,14 +2,15 @@ pipeline {
     agent any
 
     environment {
-        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        IMAGE_NAME = "lab-set15-web:1.0"
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
 
     stages {
         stage('Verify Tools') {
             steps {
-                sh 'git --version'
+                sh 'which minikube'
+                sh 'file "$(which minikube)"'
+                sh 'minikube version'
                 sh 'docker --version'
                 sh 'kubectl config current-context'
                 sh 'kubectl get nodes'
